@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="hu"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ONEWORLD — prototype</title>
+<style>
+body{font:16px system-ui;max-width:760px;margin:32px auto;padding:0 16px;background:#0b1220;color:#f4f7fb}
+section{background:#142238;border:1px solid #30425b;border-radius:16px;padding:18px;margin:14px 0}
+select,textarea,input,button{font:inherit;padding:10px;border-radius:8px;margin:4px;max-width:100%}
+button{background:#69d6b0;border:0;cursor:pointer}p{color:#bdcbe0}.out{color:#69d6b0}
+</style>
+<h1>ONEWORLD</h1><p>Web interaction prototype 0.1 — not offline-ready.</p>
+<section>
+<label>Forrás <select id="src"><option value="hu">Magyar</option><option value="en">English</option></select></label>
+<label>Cél <select id="dst"><option value="en">English</option><option value="hu">Magyar</option></select></label>
+<p><label>LibreTranslate endpoint <input id="api" value="http://localhost:5000"></label></p>
+<textarea id="q" rows="3" style="width:95%" placeholder="Írj be egy mondatot..."></textarea><br>
+<button id="go">Fordítás</button><button id="speak">Felolvasás</button>
+<p id="result" class="out" aria-live="polite"></p>
+</section>
+<section><h2>Mikrofon (kísérleti)</h2><button id="mic">Beszéd felismerése</button><button id="stop">Leállítás</button><p id="status">A böngésző beszédfelismerése nem feltétlenül offline.</p></section>
+<script>
+const $=id=>document.getElementById(id);let last="";
+$("go").onclick=async()=>{try{const r=await fetch($("api").value.replace(/\/+$/,"")+"/translate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({q:$("q").value,source:$("src").value,target:$("dst").value,format:"text"})});if(!r.ok)throw Error("HTTP "+r.status);last=(await r.json()).translatedText;$("result").textContent=last}catch(e){$("result").textContent="Fordítási hiba: "+e.message}};
+$("speak").onclick=()=>{if(last){const u=new SpeechSynthesisUtterance(last);u.lang=$("dst").value==="hu"?"hu-HU":"en-US";speechSynthesis.speak(u)}};
+let rec;const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+$("mic").onclick=()=>{if(!SR){$("status").textContent="A böngésző nem támogatja a beszédfelismerést.";return}rec=new SR();rec.lang=$("src").value==="hu"?"hu-HU":"en-US";rec.onresult=e=>{$("q").value=e.results[0][0].transcript};rec.onstart=()=>$("status").textContent="Hallgatás…";rec.onerror=e=>$("status").textContent="Hiba: "+e.error;rec.start()};
+$("stop").onclick=()=>rec?.stop();
+</script></html>
